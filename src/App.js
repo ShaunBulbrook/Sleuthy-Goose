@@ -20,7 +20,7 @@ const createTrainingData = () => {
     if (input % 11 === 0) output[9] = 1;
     if (input % 12 === 0) output[10] = 1;
 
-    return { input: binarise(input), output };
+    return { input: binarise(input).concat(ternarise(input)), output };
 };
 
 const binarise = dec =>
@@ -29,6 +29,13 @@ const binarise = dec =>
         .padStart(9, "0")
         .split("")
         .map(digit => parseInt(digit, 2));
+
+const ternarise = dec =>
+    (dec >>> 0)
+        .toString(3)
+        .padStart(9, "0")
+        .split("")
+        .map(digit => parseInt(digit, 3));
 
 const precise = x => Math.round(x * 100) / 100;
 
@@ -51,13 +58,14 @@ class App extends Component {
     }
 
     makeSomeLayers() {
-        this.inputLayer = new Layer(9);
-        this.hiddenLayer = new Layer(20);
+        this.inputLayer = new Layer(18);
+        this.hiddenLayer = new Layer(18);
         this.outputLayer = new Layer(11);
 
         this.inputLayer.project(this.hiddenLayer);
         this.hiddenLayer.project(this.outputLayer);
     }
+
     buildMyNetwork() {
         this.network = new Network({
             input: this.inputLayer,
@@ -75,8 +83,8 @@ class App extends Component {
     }
 
     hitTheGym() {
-        const learningRate = 0.3;
-        for (let i = 0; i < 10000; i++) {
+        const learningRate = 0.01;
+        for (let i = 0; i < 1000; i++) {
             const { input, output } = createTrainingData();
             this.network.activate(input);
             this.network.propagate(learningRate, output);
@@ -89,7 +97,7 @@ class App extends Component {
 
         const testData = Array(50)
             .fill()
-            .map((_, i) => binarise(i))
+            .map((_, i) => binarise(i).concat(ternarise(i)))
             .map(n => this.network.activate(n));
 
         return (
