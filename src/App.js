@@ -4,14 +4,31 @@ import "./App.css";
 
 import { Layer, Network } from "synaptic";
 
-const createTrainingData = input => {
-    const output = [0, 0];
+const createTrainingData = () => {
+    const input = Math.floor(Math.random() * 512);
+    const output = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
     if (input % 2 === 0) output[0] = 1;
     if (input % 3 === 0) output[1] = 1;
+    if (input % 4 === 0) output[2] = 1;
+    if (input % 5 === 0) output[3] = 1;
+    if (input % 6 === 0) output[4] = 1;
+    if (input % 7 === 0) output[5] = 1;
+    if (input % 8 === 0) output[6] = 1;
+    if (input % 9 === 0) output[7] = 1;
+    if (input % 10 === 0) output[8] = 1;
+    if (input % 11 === 0) output[9] = 1;
+    if (input % 12 === 0) output[10] = 1;
 
-    return { input, output };
+    return { input: binarise(input), output };
 };
+
+const binarise = dec =>
+    (dec >>> 0)
+        .toString(2)
+        .padStart(9, "0")
+        .split("")
+        .map(digit => parseInt(digit, 2));
 
 const precise = x => Math.round(x * 100) / 100;
 
@@ -20,28 +37,23 @@ class App extends Component {
         super();
         this.state = {
             testData: [],
-            finished: false
+            finished: false,
+            superspeed: true
         };
     }
+
     componentDidMount() {
         this.makeSomeLayers();
         this.buildMyNetwork();
         this.hitTheGym();
 
-        setInterval(() => {
-			console.log('');
-            console.log(this.network.activate([1]));
-            console.log(this.network.activate([2]));
-            console.log(this.network.activate([3]));
-            console.log(this.network.activate([4]));
-            console.log(this.network.activate([5]));
-        }, 500);
+        setInterval(this.forceUpdate.bind(this), 50);
     }
 
     makeSomeLayers() {
-        this.inputLayer = new Layer(1);
-        this.hiddenLayer = new Layer(4);
-        this.outputLayer = new Layer(2);
+        this.inputLayer = new Layer(9);
+        this.hiddenLayer = new Layer(20);
+        this.outputLayer = new Layer(11);
 
         this.inputLayer.project(this.hiddenLayer);
         this.hiddenLayer.project(this.outputLayer);
@@ -54,41 +66,79 @@ class App extends Component {
         });
     }
 
+    doLoads(cb) {
+        if (this.state.superspeed) {
+            window.requestAnimationFrame(cb);
+        } else {
+            setTimeout(cb, 500);
+        }
+    }
+
     hitTheGym() {
-        const learningRate = 0.001;
-        for (let i = 0; i < 100000; i++) {
-            const { input, output } = createTrainingData(i % 10);
-            this.network.activate([input]);
+        const learningRate = 0.3;
+        for (let i = 0; i < 10000; i++) {
+            const { input, output } = createTrainingData();
+            this.network.activate(input);
             this.network.propagate(learningRate, output);
         }
-		window.requestAnimationFrame(this.hitTheGym.bind(this))
+        this.doLoads(this.hitTheGym.bind(this));
     }
 
     render() {
-        const testData = Array(20)
+        if (!this.network) return null;
+
+        const testData = Array(50)
             .fill()
-            .map((_, i) => i);
+            .map((_, i) => binarise(i))
+            .map(n => this.network.activate(n));
+
         return (
             <div className="App">
                 <header className="App-header">
                     <img src={logo} className="App-logo" alt="logo" />
                     <h1 className="App-title">Welcome to the sleuthy goose!</h1>
                 </header>
-                {/* <table>
-                    {testData.map((input, index) => (
-                        <tr key={index}>
-                            <td>{input}</td>
-                            {this.network &&
-                                this.network
-                                    .activate([input])
-                                    .map((neuron, index) => (
-                                        <td key={index} style={{ width: 300 }}>
-                                            {precise(neuron)}
-                                        </td>
-                                    ))}
+                <table>
+                    <tbody>
+                        <tr>
+                            <th>n</th>
+                            <th>2</th>
+                            <th>3</th>
+                            <th>4</th>
+                            <th>5</th>
+                            <th>6</th>
+                            <th>7</th>
+                            <th>8</th>
+                            <th>9</th>
+                            <th>10</th>
+                            <th>11</th>
+                            <th>12</th>
                         </tr>
-                    ))}
-                </table> */}
+                        {testData.map((timestables, n) => (
+                            <tr
+                                key={n}
+                                style={{
+                                    fontSize: 9
+                                }}
+                            >
+                                <td>{n}</td>
+                                {timestables.map((result, index) => (
+                                    <td
+                                        style={{
+                                            width: 75,
+                                            backgroundColor: `rgba(255, 100, 100, ${1 -
+                                                Math.abs(
+                                                    result - (n % (index + 2))
+                                                )})`
+                                        }}
+                                    >
+                                        {precise(result)}
+                                    </td>
+                                ))}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
         );
     }
